@@ -1,0 +1,47 @@
+watchlist:
+  - ticker: ALDRV.PA
+    exchange: Euronext Paris
+    company_name: Drone Volt
+    currency: EUR
+    sector: Industrials
+    country: France
+    shares_owned: 0
+    average_buy_price:
+    investment_amount:
+  - ticker: NVDA
+    exchange: NASDAQ
+    company_name: NVIDIA
+    currency: USD
+    sector: Technology
+    country: United States
+    shares_owned: 0
+    average_buy_price:
+    investment_amount:
+  - ticker: MSFT
+    exchange: NASDAQ
+    company_name: Microsoft
+    currency: USD
+    sector: Technology
+    country: United States
+    shares_owned: 0
+    average_buy_price:
+    investment_amount:
+  - ticker: RHM.DE
+    exchange: XETRA
+    company_name: Rheinmetall
+    currency: EUR
+    sector: Industrials
+    country: Germany
+    shares_owned: 0
+    average_buy_price:
+    investment_amount:
+  - ticker: DSY.PA
+    exchange: Euronext Paris
+    company_name: Dassault Systemes
+    currency: EUR
+    sector: Technology
+    country: France
+    shares_owned: 0
+    average_buy_price:
+    investment_amount:
+
