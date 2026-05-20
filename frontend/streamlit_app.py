@@ -6,7 +6,22 @@ import requests
 import streamlit as st
 from plotly.subplots import make_subplots
 
-API_URL = os.getenv("API_URL", "http://localhost:8000/api")
+API_URL = os.getenv("API_URL")
+
+
+def use_api() -> bool:
+    return bool(API_URL)
+
+
+def run_with_db(callback):
+    from app.db.session import SessionLocal, init_db
+
+    init_db()
+    db = SessionLocal()
+    try:
+        return callback(db)
+    finally:
+        db.close()
 
 st.set_page_config(page_title="Investment Agent", layout="wide")
 st.markdown(
@@ -62,6 +77,14 @@ st.markdown(
 
 @st.cache_data(ttl=240)
 def load_analysis() -> list[dict]:
+    if not use_api():
+        from app.services.analysis import AnalysisService
+
+        return run_with_db(
+            lambda db: [
+                item.model_dump(mode="json") for item in AnalysisService().analyze_watchlist(db)
+            ]
+        )
     response = requests.get(f"{API_URL}/analysis", timeout=120)
     response.raise_for_status()
     return response.json()
@@ -69,6 +92,10 @@ def load_analysis() -> list[dict]:
 
 @st.cache_data(ttl=240)
 def load_detail(ticker: str) -> dict:
+    if not use_api():
+        from app.services.analysis import AnalysisService
+
+        return run_with_db(lambda db: AnalysisService().stock_detail(db, ticker))
     response = requests.get(f"{API_URL}/analysis/{ticker}", timeout=120)
     response.raise_for_status()
     return response.json()
@@ -76,22 +103,64 @@ def load_detail(ticker: str) -> dict:
 
 @st.cache_data(ttl=240)
 def load_watchlist() -> list[dict]:
+    if not use_api():
+        from app.config import get_settings
+        from app.services.watchlist import WatchlistService
+
+        return run_with_db(
+            lambda db: [
+                item.model_dump()
+                for item in WatchlistService(get_settings().watchlist_config).list_entries(db)
+            ]
+        )
     response = requests.get(f"{API_URL}/watchlist", timeout=30)
     response.raise_for_status()
     return response.json()
 
 
 def add_watchlist_item(payload: dict) -> None:
+    if not use_api():
+        from app.config import get_settings
+        from app.models.schemas import WatchlistEntry
+        from app.services.watchlist import WatchlistService
+
+        run_with_db(
+            lambda db: WatchlistService(get_settings().watchlist_config).upsert(
+                db, WatchlistEntry(**payload)
+            )
+        )
+        return
     response = requests.post(f"{API_URL}/watchlist", json=payload, timeout=30)
     response.raise_for_status()
 
 
 def remove_watchlist_item(ticker: str) -> None:
+    if not use_api():
+        from app.config import get_settings
+        from app.services.watchlist import WatchlistService
+
+        run_with_db(lambda db: WatchlistService(get_settings().watchlist_config).remove(db, ticker))
+        return
     response = requests.delete(f"{API_URL}/watchlist/{ticker}", timeout=30)
     response.raise_for_status()
 
 
 def import_tradingview_symbols(payload: dict) -> int:
+    if not use_api():
+        from app.config import get_settings
+        from app.services.watchlist import WatchlistService
+
+        return run_with_db(
+            lambda db: len(
+                WatchlistService(get_settings().watchlist_config).import_tradingview_symbols(
+                    db,
+                    payload["symbols"],
+                    default_currency=payload.get("default_currency", ""),
+                    default_sector=payload.get("default_sector", ""),
+                    default_country=payload.get("default_country", ""),
+                )
+            )
+        )
     response = requests.post(f"{API_URL}/watchlist/import/tradingview", json=payload, timeout=30)
     response.raise_for_status()
     return len(response.json())
